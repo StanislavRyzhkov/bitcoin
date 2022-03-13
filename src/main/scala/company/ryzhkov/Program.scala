@@ -19,8 +19,11 @@ object Program extends App {
 
     def +(that: Point): Point = {
       def calculate(m: BigInt, self: N, other: N) = {
-        val rx = (m * m - self.x - other.x)      % self.curve.p
-        val ry = (-(m * (rx - self.x) + self.y)) % self.curve.p
+//        println(s"m: $m")
+        val rx = mod((m * m - self.x - other.x), self.curve.p)
+//        println(s"rx: $rx")
+        val ry = mod((-(m * (rx - self.x) + self.y)), self.curve.p)
+//        println(s"ry: $ry")
         N(self.curve, rx, ry)
       }
 
@@ -33,7 +36,13 @@ object Program extends App {
           val m = (3 * self.x * self.x + self.curve.a) * inv(2 * self.y, self.curve.p)
           calculate(m, self, other)
         case (self: N, other: N) =>
+//          println("Other")
           val m = (self.y - other.y) * inv(self.x - other.x, self.curve.p)
+          println(s"self-x: ${self.x}")
+          println(s"other-x: ${other.x}")
+          println(s"self-curve-p: ${self.curve.p}")
+          println(s"inv: ${inv(self.x - other.x, self.curve.p)}")
+          println(s"M: $m")
           calculate(m, self, other)
       }
     }
@@ -42,31 +51,39 @@ object Program extends App {
     // This function implements the extended Euclidean algorithm and runs
     // in O(log b) in the worst case, taken from Wikipedia.
     private def extendedEuclideanAlgorithm(a: BigInt, b: BigInt) = {
-      var oldR = a
-      var r    = b
-      var oldS = BigInt(1)
-      var s    = BigInt(0)
-      var oldT = BigInt(0)
-      var t    = BigInt(1)
+      var r = (a, b)
+      var s = (BigInt(1), BigInt(0))
+      var t = (BigInt(0), BigInt(1))
 
-      while (r != BigInt(0)) {
-        val quotient = oldR / r
-        oldR = r
-        r = oldR - quotient * r
-        oldS = s
-        s = oldS - quotient * s
-        oldT = t
-        t = oldT - quotient * t
+      while (r._2 != 0) {
+        val quotient = r._1 / r._2
+        r = (r._2, r._1 - quotient * r._2)
+        s = (s._2, s._1 - quotient * s._2)
+        t = (t._2, t._1 - quotient * t._2)
       }
-      (oldR, oldS, oldT)
+      (r._1, s._1, t._1)
     }
 
     // returns modular multiplicate inverse m s.t. (n * m) % p == 1
     private def inv(n: BigInt, p: BigInt) = {
       val (_, x, _) = extendedEuclideanAlgorithm(n, p)
-      x % p
+      println(s"x: $x")
+      println(s"p: $p")
+      val res = mod(x, p)
+      println(s"res: $res")
+      res
     }
 
+    private def sign(x: BigInt) =
+      if (x < 0) -1
+      else if (x == 0) 0
+      else 1
+
+    private def mod(n: BigInt, d: BigInt): BigInt = {
+      val result = n % d
+      if (sign(result) * sign(d) < 0) result + d
+      else result
+    }
   }
   object Point {
     case class N(
@@ -116,14 +133,9 @@ object Program extends App {
 //      println("Error")
 //  }
 
-  val sk2 = 2
-  val pk2 = Point.G + Point.G
-  pk2 match {
-    case Point.N(curve, x, y) =>
-      println(s"Public key: ${(x, y)}")
-      val ver = (y * y - x * x * x - 7) % curve.p == 0
-      println(s"Verify: $ver")
-    case Point.Z =>
-      println("Error")
-  }
+  println(Point.G)
+  println("=====")
+  println(Point.G + Point.G)
+  println("=====")
+  println(Point.G + Point.G + Point.G)
 }
